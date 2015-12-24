@@ -11,12 +11,11 @@ import (
 )
 
 var (
-	ErrNotFound   = errors.New("not found")
-	ErrNotString  = errors.New("not string")
-	ErrNotInt     = errors.New("not int")
-	ErrNotInt64   = errors.New("not int64")
-	ErrNotFloat   = errors.New("not float")
-	ErrNotUintptr = errors.New("not uintptr")
+	ErrNotFound  = errors.New("not found")
+	ErrNotString = errors.New("not string")
+	ErrNotInt    = errors.New("not int")
+	ErrNotInt64  = errors.New("not int64")
+	ErrNotFloat  = errors.New("not float")
 )
 
 type Config struct {
