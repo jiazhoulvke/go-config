@@ -1,4 +1,4 @@
-package config
+package goconfig
 
 import (
 	"bufio"
@@ -8,6 +8,15 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+)
+
+var (
+	ErrNotFound   = errors.New("not found")
+	ErrNotString  = errors.New("not string")
+	ErrNotInt     = errors.New("not int")
+	ErrNotInt64   = errors.New("not int64")
+	ErrNotFloat   = errors.New("not float")
+	ErrNotUintptr = errors.New("not uintptr")
 )
 
 type Config struct {
@@ -20,19 +29,12 @@ func New() *Config {
 	}
 }
 
-func Init(filename string, obj interface{}) error {
-	var (
-		cfg *Config
-		err error
-	)
-	if filename == "" {
-		cfg = New()
-	} else {
-		cfg, err = Parse(filename)
-		if err != nil {
-			return err
-		}
-	}
+func (p *Config) Set(key string, value interface{}) *Config {
+	p.data[key] = value
+	return p
+}
+
+func (p *Config) Init(obj interface{}) error {
 	objT := reflect.TypeOf(obj).Elem()
 	objV := reflect.ValueOf(obj).Elem()
 	for i := 0; i < objT.NumField(); i++ {
@@ -48,48 +50,48 @@ func Init(filename string, obj interface{}) error {
 		if len(originDefaultValue) > 0 {
 			switch elem.Type.String() {
 			case "string":
-				objV.FieldByName(elem.Name).SetString(cfg.StringDefault(cfgName, originDefaultValue))
+				objV.FieldByName(elem.Name).SetString(p.StringDefault(cfgName, originDefaultValue))
 			case "int":
 				defaultValue, err := strconv.Atoi(originDefaultValue)
 				if err != nil {
 					return err
 				}
-				objV.FieldByName(elem.Name).SetInt(int64(cfg.IntDefault(cfgName, defaultValue)))
+				objV.FieldByName(elem.Name).SetInt(int64(p.IntDefault(cfgName, defaultValue)))
 			case "int64":
 				defaultValue, err := strconv.ParseInt(originDefaultValue, 10, 64)
 				if err != nil {
 					return err
 				}
-				objV.FieldByName(elem.Name).SetInt(cfg.Int64Default(cfgName, defaultValue))
+				objV.FieldByName(elem.Name).SetInt(p.Int64Default(cfgName, defaultValue))
 			case "float64":
 				defaultValue, err := strconv.ParseFloat(originDefaultValue, 64)
 				if err != nil {
 					return err
 				}
-				objV.FieldByName(elem.Name).SetFloat(cfg.FloatDefault(cfgName, defaultValue))
+				objV.FieldByName(elem.Name).SetFloat(p.FloatDefault(cfgName, defaultValue))
 			}
 		} else {
 			switch elem.Type.String() {
 			case "string":
-				value, err := cfg.GetString(cfgName)
+				value, err := p.GetString(cfgName)
 				if err != nil {
 					return err
 				}
 				objV.FieldByName(elem.Name).SetString(value)
 			case "int":
-				value, err := cfg.GetInt(cfgName)
+				value, err := p.GetInt(cfgName)
 				if err != nil {
 					return err
 				}
 				objV.FieldByName(elem.Name).SetInt(int64(value))
 			case "int64":
-				value, err := cfg.GetInt64(cfgName)
+				value, err := p.GetInt64(cfgName)
 				if err != nil {
 					return err
 				}
 				objV.FieldByName(elem.Name).SetInt(value)
 			case "float64":
-				value, err := cfg.GetFloat(cfgName)
+				value, err := p.GetFloat(cfgName)
 				if err != nil {
 					return err
 				}
@@ -141,11 +143,21 @@ func Parse(filename string) (*Config, error) {
 }
 
 func (p *Config) GetInt(key string) (int, error) {
-	value, err := p.GetString(key)
-	if err != nil {
-		return 0, err
+	if v, ok := p.data[key]; ok {
+		switch value := v.(type) {
+		case int:
+			return value, nil
+		case string:
+			valueInt, err := strconv.Atoi(value)
+			if err != nil {
+				return 0, ErrNotInt
+			}
+			return valueInt, nil
+		default:
+			return 0, ErrNotInt
+		}
 	}
-	return strconv.Atoi(value)
+	return 0, ErrNotFound
 }
 
 func (p *Config) IntDefault(key string, defaultValue int) int {
@@ -157,11 +169,23 @@ func (p *Config) IntDefault(key string, defaultValue int) int {
 }
 
 func (p *Config) GetInt64(key string) (int64, error) {
-	value, err := p.GetString(key)
-	if err != nil {
-		return 0, err
+	if v, ok := p.data[key]; ok {
+		switch value := v.(type) {
+		case int:
+			return int64(value), nil
+		case int64:
+			return value, nil
+		case string:
+			valueInt64, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return 0, ErrNotInt64
+			}
+			return valueInt64, nil
+		default:
+			return 0, ErrNotInt64
+		}
 	}
-	return strconv.ParseInt(value, 10, 64)
+	return 0, ErrNotFound
 }
 
 func (p *Config) Int64Default(key string, defaultValue int64) int64 {
@@ -173,11 +197,21 @@ func (p *Config) Int64Default(key string, defaultValue int64) int64 {
 }
 
 func (p *Config) GetFloat(key string) (float64, error) {
-	value, err := p.GetString(key)
-	if err != nil {
-		return 0, err
+	if v, ok := p.data[key]; ok {
+		switch value := v.(type) {
+		case float64:
+			return value, nil
+		case string:
+			valueFloat, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				return 0, ErrNotFloat
+			}
+			return valueFloat, nil
+		default:
+			return 0, ErrNotFloat
+		}
 	}
-	return strconv.ParseFloat(value, 64)
+	return 0, ErrNotFound
 }
 
 func (p *Config) FloatDefault(key string, defaultValue float64) float64 {
@@ -193,11 +227,10 @@ func (p *Config) GetString(key string) (string, error) {
 		if value, isString := v.(string); isString {
 			return value, nil
 		} else {
-			return "", errors.New("not string")
+			return "", ErrNotString
 		}
-	} else {
-		return "", errors.New("not found")
 	}
+	return "", ErrNotFound
 }
 
 func (p *Config) StringDefault(key string, defaultValue string) string {
@@ -206,4 +239,11 @@ func (p *Config) StringDefault(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+func (p *Config) GetInterface(key string) (interface{}, error) {
+	if v, ok := p.data[key]; ok {
+		return v, nil
+	}
+	return nil, ErrNotFound
 }

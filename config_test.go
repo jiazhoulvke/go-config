@@ -1,12 +1,4 @@
-package config
-
-/*
-test.conf
-USERNAME = jiazhoulvke
-PORT     = 1984
-VERSION  = 1.1
-HOST     = localhost
-*/
+package goconfig
 
 import (
 	"testing"
@@ -141,14 +133,37 @@ func Test_StringDefault(t *testing.T) {
 }
 
 func Test_Init(t *testing.T) {
-	var cfg Cfg
-	err := Init(TestFile, &cfg)
+	cfg, err := Parse(TestFile)
 	if err != nil {
 		t.Error(err)
 	}
-	if cfg.DBName != "go" || cfg.Username != "jiazhoulvke" || cfg.Port != 1984 || cfg.Version != 1.1 {
+	var config Cfg
+	err = cfg.Init(&config)
+	if config.DBName != "go" || config.Username != "jiazhoulvke" || config.Port != 1984 || config.Version != 1.1 {
 		t.Error("Init测试失败")
 	} else {
 		t.Log("Init测试成功")
+	}
+}
+
+func Test_Set(t *testing.T) {
+	cfg := New()
+	cfg.Set("ABC", 123).Set("DEF", 456).Set("GHI", 7.89)
+	abc, err := cfg.GetInt("ABC")
+	if err != nil {
+		t.Error(err)
+	}
+	def, err := cfg.GetInt64("DEF")
+	if err != nil {
+		t.Error(err)
+	}
+	ghi, err := cfg.GetFloat("GHI")
+	if err != nil {
+		t.Error(err)
+	}
+	if abc != 123 || def != 456 || ghi != 7.89 {
+		t.Error("Set测试失败")
+	} else {
+		t.Log("Set测试成功")
 	}
 }
