@@ -6,12 +6,14 @@
 
 示例配置文件test.conf内容如下：
 
-> # this is comment line 1
-> ; this is comment line 2
-> USERNAME = jiazhoulvke
-> PORT     = 1984
-> VERSION  = 1.1
-> HOST     = localhost
+```conf
+    # this is comment line 1
+    ; this is comment line 2
+    USERNAME = jiazhoulvke
+    PORT     = 1984
+    VERSION  = 1.1
+    HOST     = localhost
+```
 
 读取配置文件:
 
@@ -44,7 +46,7 @@
 ```
 
 
-设置字段,支持代码链:
+设置字段,支持方法链:
 
 ```go
     cfg.Set("Url", "http://www.jiazhoulvke.com").Set("Tags", "vim,python,linux,go")
@@ -61,6 +63,6 @@
 
     var myconfig MyConfig
     cfg.Init(&myconfig) //注意是传指针
-    fmt.Println(myconfig.UserName) //输出jiazhoulvke hello,world
+    fmt.Println(myconfig.UserName,myconfig.Password) //jiazhoulvke hello,world
 ```
 
