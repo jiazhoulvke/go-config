@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -22,15 +23,17 @@ type Config struct {
 	data map[string]interface{}
 }
 
-func New() *Config {
-	return &Config{
+func New(objs ...interface{}) (*Config, error) {
+	config := &Config{
 		data: make(map[string]interface{}),
 	}
-}
-
-func (p *Config) Set(key string, value interface{}) *Config {
-	p.data[key] = value
-	return p
+	for _, obj := range objs {
+		err := config.Init(obj)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return config, nil
 }
 
 func (p *Config) Init(obj interface{}) error {
@@ -72,25 +75,25 @@ func (p *Config) Init(obj interface{}) error {
 		} else {
 			switch elem.Type.String() {
 			case "string":
-				value, err := p.GetString(cfgName)
+				value, err := p.String(cfgName)
 				if err != nil {
 					return err
 				}
 				objV.FieldByName(elem.Name).SetString(value)
 			case "int":
-				value, err := p.GetInt(cfgName)
+				value, err := p.Int(cfgName)
 				if err != nil {
 					return err
 				}
 				objV.FieldByName(elem.Name).SetInt(int64(value))
 			case "int64":
-				value, err := p.GetInt64(cfgName)
+				value, err := p.Int64(cfgName)
 				if err != nil {
 					return err
 				}
 				objV.FieldByName(elem.Name).SetInt(value)
 			case "float64":
-				value, err := p.GetFloat(cfgName)
+				value, err := p.Float(cfgName)
 				if err != nil {
 					return err
 				}
@@ -101,17 +104,21 @@ func (p *Config) Init(obj interface{}) error {
 	return nil
 }
 
-func Parse(filename string) (*Config, error) {
-	cfg := New()
+func (p *Config) Set(key string, value interface{}) *Config {
+	p.data[key] = value
+	return p
+}
+
+func (p *Config) Parse(filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
 	buf := bufio.NewReader(file)
 	bomb, err := buf.Peek(3)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err == nil && bytes.Equal(bomb, []byte{239, 187, 191}) {
 		buf.Read(make([]byte, 3))
@@ -133,15 +140,15 @@ func Parse(filename string) (*Config, error) {
 			continue
 		}
 		key, value := bytes.TrimSpace(splitedLine[0]), bytes.TrimSpace(splitedLine[1])
-		if len(key) == 0 || len(value) == 0 {
+		if len(key) == 0 {
 			continue
 		}
-		cfg.data[string(key)] = string(value)
+		p.data[string(key)] = string(value)
 	}
-	return cfg, nil
+	return nil
 }
 
-func (p *Config) GetInt(key string) (int, error) {
+func (p *Config) Int(key string) (int, error) {
 	if v, ok := p.data[key]; ok {
 		switch value := v.(type) {
 		case int:
@@ -160,14 +167,14 @@ func (p *Config) GetInt(key string) (int, error) {
 }
 
 func (p *Config) IntDefault(key string, defaultValue int) int {
-	value, err := p.GetInt(key)
+	value, err := p.Int(key)
 	if err != nil {
 		return defaultValue
 	}
 	return value
 }
 
-func (p *Config) GetInt64(key string) (int64, error) {
+func (p *Config) Int64(key string) (int64, error) {
 	if v, ok := p.data[key]; ok {
 		switch value := v.(type) {
 		case int:
@@ -188,14 +195,14 @@ func (p *Config) GetInt64(key string) (int64, error) {
 }
 
 func (p *Config) Int64Default(key string, defaultValue int64) int64 {
-	value, err := p.GetInt64(key)
+	value, err := p.Int64(key)
 	if err != nil {
 		return defaultValue
 	}
 	return value
 }
 
-func (p *Config) GetFloat(key string) (float64, error) {
+func (p *Config) Float(key string) (float64, error) {
 	if v, ok := p.data[key]; ok {
 		switch value := v.(type) {
 		case float64:
@@ -214,14 +221,14 @@ func (p *Config) GetFloat(key string) (float64, error) {
 }
 
 func (p *Config) FloatDefault(key string, defaultValue float64) float64 {
-	value, err := p.GetFloat(key)
+	value, err := p.Float(key)
 	if err != nil {
 		return defaultValue
 	}
 	return value
 }
 
-func (p *Config) GetString(key string) (string, error) {
+func (p *Config) String(key string) (string, error) {
 	if v, ok := p.data[key]; ok {
 		if value, isString := v.(string); isString {
 			return value, nil
@@ -233,14 +240,38 @@ func (p *Config) GetString(key string) (string, error) {
 }
 
 func (p *Config) StringDefault(key string, defaultValue string) string {
-	value, err := p.GetString(key)
+	value, err := p.String(key)
 	if err != nil {
 		return defaultValue
 	}
 	return value
 }
 
-func (p *Config) GetInterface(key string) (interface{}, error) {
+func (p *Config) List(key string, delimiterArg ...string) ([]string, error) {
+	value, err := p.String(key)
+	if err != nil {
+		return nil, err
+	}
+	delimiter := " "
+	if len(delimiterArg) > 0 {
+		delimiter = delimiterArg[0]
+	}
+	return strings.Split(value, delimiter), nil
+}
+
+func (p *Config) ListDefault(key string, defaultValue []string, delimiterArg ...string) []string {
+	delimiter := " "
+	if len(delimiterArg) > 0 {
+		delimiter = delimiterArg[0]
+	}
+	value, err := p.List(key, delimiter)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}
+
+func (p *Config) Interface(key string) (interface{}, error) {
 	if v, ok := p.data[key]; ok {
 		return v, nil
 	}

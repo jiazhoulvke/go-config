@@ -17,153 +17,192 @@ type Cfg struct {
 }
 
 func Test_GetInt(t *testing.T) {
-	cfg, err := Parse(TestFile)
+	cfg, err := New()
 	if err != nil {
 		t.Error(err)
 	}
-	port, err := cfg.GetInt("PORT")
+	err = cfg.Parse(TestFile)
+	if err != nil {
+		t.Error(err)
+	}
+	port, err := cfg.Int("PORT")
 	if err != nil {
 		t.Error(err)
 	}
 	if port != 1984 {
-		t.Error("GetInt出错")
+		t.Error("Int error")
 	} else {
-		t.Log("GetInt测试成功")
+		t.Log("Int success")
 	}
 }
 
 func Test_IntDefault(t *testing.T) {
-	cfg, err := Parse(TestFile)
+	cfg, err := New()
+	if err != nil {
+		t.Error(err)
+	}
+	err = cfg.Parse(TestFile)
 	if err != nil {
 		t.Error(err)
 	}
 	dv := cfg.IntDefault("NOKEY", 1234)
 	if dv != 1234 {
-		t.Error("IntDefault出错")
+		t.Error("IntDefault error")
 	} else {
-		t.Log("IntDefault测试成功")
+		t.Log("IntDefault success")
 	}
 }
 
-func Test_GetInt64(t *testing.T) {
-	cfg, err := Parse(TestFile)
+func Test_Int64(t *testing.T) {
+	cfg, err := New()
 	if err != nil {
 		t.Error(err)
 	}
-	port, err := cfg.GetInt64("PORT")
+	err = cfg.Parse(TestFile)
+	if err != nil {
+		t.Error(err)
+	}
+	port, err := cfg.Int64("PORT")
 	if err != nil {
 		t.Error(err)
 	}
 	if port != 1984 {
-		t.Error("GetInt64出错")
+		t.Error("Int64 error")
 	} else {
-		t.Log("GetInt64测试成功")
+		t.Log("Int64 success")
 	}
 }
 
 func Test_Int64Default(t *testing.T) {
-	cfg, err := Parse(TestFile)
+	cfg, err := New()
+	if err != nil {
+		t.Error(err)
+	}
+	err = cfg.Parse(TestFile)
 	if err != nil {
 		t.Error(err)
 	}
 	dv := cfg.Int64Default("NOKEY", 1234)
 	if dv != 1234 {
-		t.Error("IntDefault出错")
+		t.Error("Int64Default error")
 	} else {
-		t.Log("IntDefault测试成功")
+		t.Log("Int64Default success")
 	}
 }
 
-func Test_GetFloat(t *testing.T) {
-	cfg, err := Parse(TestFile)
+func Test_Float(t *testing.T) {
+	cfg, err := New()
 	if err != nil {
 		t.Error(err)
 	}
-	port, err := cfg.GetFloat("VERSION")
+	err = cfg.Parse(TestFile)
+	if err != nil {
+		t.Error(err)
+	}
+	port, err := cfg.Float("VERSION")
 	if err != nil {
 		t.Error(err)
 	}
 	if port != 1.1 {
-		t.Error("GetFloat出错")
+		t.Error("Float error")
 	} else {
-		t.Log("GetFloat测试成功")
+		t.Log("Float success")
 	}
 }
 
 func Test_FloatDefault(t *testing.T) {
-	cfg, err := Parse(TestFile)
+	cfg, err := New()
+	if err != nil {
+		t.Error(err)
+	}
+	err = cfg.Parse(TestFile)
 	if err != nil {
 		t.Error(err)
 	}
 	dv := cfg.FloatDefault("NOKEY", 12.34)
 	if dv != 12.34 {
-		t.Error("IntDefault出错")
+		t.Error("FloatDefault error")
 	} else {
-		t.Log("IntDefault测试成功")
+		t.Log("FloatDefault success")
 	}
 }
 
-func Test_GetString(t *testing.T) {
-	cfg, err := Parse(TestFile)
+func Test_String(t *testing.T) {
+	cfg, err := New()
 	if err != nil {
 		t.Error(err)
 	}
-	username, err := cfg.GetString("USERNAME")
+	err = cfg.Parse(TestFile)
+	if err != nil {
+		t.Error(err)
+	}
+	username, err := cfg.String("USERNAME")
 	if err != nil {
 		t.Error(err)
 	}
 	if username != "jiazhoulvke" {
-		t.Error("GetString出错")
+		t.Error("String error")
 	} else {
-		t.Log("GetFloat测试成功")
+		t.Log("String success")
 	}
 }
 
 func Test_StringDefault(t *testing.T) {
-	cfg, err := Parse(TestFile)
+	cfg, err := New()
+	if err != nil {
+		t.Error(err)
+	}
+	err = cfg.Parse(TestFile)
 	if err != nil {
 		t.Error(err)
 	}
 	dv := cfg.StringDefault("NOKEY", "hello,world!")
 	if dv != "hello,world!" {
-		t.Error("StringDefault出错")
+		t.Error("StringDefault error")
 	} else {
-		t.Log("StringDefault测试成功")
+		t.Log("StringDefault success")
 	}
 }
 
 func Test_Init(t *testing.T) {
-	cfg, err := Parse(TestFile)
+	cfg, err := New()
+	if err != nil {
+		t.Error(err)
+	}
+	err = cfg.Parse(TestFile)
 	if err != nil {
 		t.Error(err)
 	}
 	var config Cfg
 	err = cfg.Init(&config)
 	if config.DBName != "go" || config.Username != "jiazhoulvke" || config.Port != 1984 || config.Version != 1.1 {
-		t.Error("Init测试失败")
+		t.Error("Init error")
 	} else {
-		t.Log("Init测试成功")
+		t.Log("Init success")
 	}
 }
 
 func Test_Set(t *testing.T) {
-	cfg := New()
+	cfg, err := New()
+	if err != nil {
+		t.Error(err)
+	}
 	cfg.Set("ABC", 123).Set("DEF", 456).Set("GHI", 7.89)
-	abc, err := cfg.GetInt("ABC")
+	abc, err := cfg.Int("ABC")
 	if err != nil {
 		t.Error(err)
 	}
-	def, err := cfg.GetInt64("DEF")
+	def, err := cfg.Int64("DEF")
 	if err != nil {
 		t.Error(err)
 	}
-	ghi, err := cfg.GetFloat("GHI")
+	ghi, err := cfg.Float("GHI")
 	if err != nil {
 		t.Error(err)
 	}
 	if abc != 123 || def != 456 || ghi != 7.89 {
-		t.Error("Set测试失败")
+		t.Error("Set error")
 	} else {
-		t.Log("Set测试成功")
+		t.Log("Set success")
 	}
 }
