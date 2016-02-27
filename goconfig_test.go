@@ -16,7 +16,7 @@ type Cfg struct {
 	Version  float64 `cfgname:"VERSION" default:"1.0"`
 }
 
-func Test_GetInt(t *testing.T) {
+func Test_Int(t *testing.T) {
 	cfg, err := New()
 	if err != nil {
 		t.Error(err)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -20,13 +21,18 @@ var (
 )
 
 type Config struct {
-	data map[string]interface{}
+	Section     string
+	sectionList []string
+	data        map[string]map[string]string
 }
 
 func New(objs ...interface{}) (*Config, error) {
 	config := &Config{
-		data: make(map[string]interface{}),
+		Section:     "DEFAULT",
+		sectionList: []string{"DEFAULT"},
+		data:        make(map[string]map[string]string),
 	}
+	config.SetSection("DEFAULT")
 	for _, obj := range objs {
 		err := config.Init(obj)
 		if err != nil {
@@ -48,29 +54,29 @@ func (p *Config) Init(obj interface{}) error {
 		if len(elem.Tag.Get("cfgname")) > 0 {
 			cfgName = elem.Tag.Get("cfgname")
 		}
-		originDefaultValue := elem.Tag.Get("default")
-		if len(originDefaultValue) > 0 {
+		originDefaultVal := elem.Tag.Get("default")
+		if len(originDefaultVal) > 0 {
 			switch elem.Type.String() {
 			case "string":
-				objV.FieldByName(elem.Name).SetString(p.StringDefault(cfgName, originDefaultValue))
+				objV.FieldByName(elem.Name).SetString(p.StringDefault(cfgName, originDefaultVal))
 			case "int":
-				defaultValue, err := strconv.Atoi(originDefaultValue)
+				defaultVal, err := strconv.Atoi(originDefaultVal)
 				if err != nil {
 					return err
 				}
-				objV.FieldByName(elem.Name).SetInt(int64(p.IntDefault(cfgName, defaultValue)))
+				objV.FieldByName(elem.Name).SetInt(int64(p.IntDefault(cfgName, defaultVal)))
 			case "int64":
-				defaultValue, err := strconv.ParseInt(originDefaultValue, 10, 64)
+				defaultVal, err := strconv.ParseInt(originDefaultVal, 10, 64)
 				if err != nil {
 					return err
 				}
-				objV.FieldByName(elem.Name).SetInt(p.Int64Default(cfgName, defaultValue))
+				objV.FieldByName(elem.Name).SetInt(p.Int64Default(cfgName, defaultVal))
 			case "float64":
-				defaultValue, err := strconv.ParseFloat(originDefaultValue, 64)
+				defaultVal, err := strconv.ParseFloat(originDefaultVal, 64)
 				if err != nil {
 					return err
 				}
-				objV.FieldByName(elem.Name).SetFloat(p.FloatDefault(cfgName, defaultValue))
+				objV.FieldByName(elem.Name).SetFloat(p.FloatDefault(cfgName, defaultVal))
 			}
 		} else {
 			switch elem.Type.String() {
@@ -104,8 +110,20 @@ func (p *Config) Init(obj interface{}) error {
 	return nil
 }
 
+func (p *Config) SetSection(section string) {
+	p.Section = section
+	if _, ok := p.data[section]; !ok {
+		p.sectionList = append(p.sectionList, section)
+		p.data[section] = make(map[string]string)
+	}
+}
+
 func (p *Config) Set(key string, value interface{}) *Config {
-	p.data[key] = value
+	if _, ok := p.data[p.Section]; ok {
+		p.data[p.Section][key] = fmt.Sprintf("%v", value)
+	} else {
+		p.data[p.Section] = map[string]string{key: fmt.Sprintf("%v", value)}
+	}
 	return p
 }
 
@@ -143,106 +161,87 @@ func (p *Config) Parse(filename string) error {
 		if len(key) == 0 {
 			continue
 		}
-		p.data[string(key)] = string(value)
+		p.Set(string(key), string(value))
 	}
 	return nil
 }
 
 func (p *Config) Int(key string) (int, error) {
-	if v, ok := p.data[key]; ok {
-		switch value := v.(type) {
-		case int:
-			return value, nil
-		case string:
-			valueInt, err := strconv.Atoi(value)
+	if _, ok := p.data[p.Section]; ok {
+		if v, ok := p.data[p.Section][key]; ok {
+			valueInt, err := strconv.Atoi(v)
 			if err != nil {
 				return 0, ErrNotInt
 			}
 			return valueInt, nil
-		default:
-			return 0, ErrNotInt
 		}
 	}
 	return 0, ErrNotFound
 }
 
-func (p *Config) IntDefault(key string, defaultValue int) int {
+func (p *Config) IntDefault(key string, defaultVal int) int {
 	value, err := p.Int(key)
 	if err != nil {
-		return defaultValue
+		return defaultVal
 	}
 	return value
 }
 
 func (p *Config) Int64(key string) (int64, error) {
-	if v, ok := p.data[key]; ok {
-		switch value := v.(type) {
-		case int:
-			return int64(value), nil
-		case int64:
-			return value, nil
-		case string:
-			valueInt64, err := strconv.ParseInt(value, 10, 64)
+	if _, ok := p.data[p.Section]; ok {
+		if v, ok := p.data[p.Section][key]; ok {
+			valueInt64, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				return 0, ErrNotInt64
 			}
 			return valueInt64, nil
-		default:
-			return 0, ErrNotInt64
 		}
 	}
 	return 0, ErrNotFound
 }
 
-func (p *Config) Int64Default(key string, defaultValue int64) int64 {
+func (p *Config) Int64Default(key string, defaultVal int64) int64 {
 	value, err := p.Int64(key)
 	if err != nil {
-		return defaultValue
+		return defaultVal
 	}
 	return value
 }
 
 func (p *Config) Float(key string) (float64, error) {
-	if v, ok := p.data[key]; ok {
-		switch value := v.(type) {
-		case float64:
-			return value, nil
-		case string:
-			valueFloat, err := strconv.ParseFloat(value, 64)
+	if _, ok := p.data[p.Section]; ok {
+		if v, ok := p.data[p.Section][key]; ok {
+			valueFloat, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				return 0, ErrNotFloat
 			}
 			return valueFloat, nil
-		default:
-			return 0, ErrNotFloat
 		}
 	}
 	return 0, ErrNotFound
 }
 
-func (p *Config) FloatDefault(key string, defaultValue float64) float64 {
+func (p *Config) FloatDefault(key string, defaultVal float64) float64 {
 	value, err := p.Float(key)
 	if err != nil {
-		return defaultValue
+		return defaultVal
 	}
 	return value
 }
 
 func (p *Config) String(key string) (string, error) {
-	if v, ok := p.data[key]; ok {
-		if value, isString := v.(string); isString {
-			return value, nil
-		} else {
-			return "", ErrNotString
+	if _, ok := p.data[p.Section]; ok {
+		if v, ok := p.data[p.Section][key]; ok {
+			return v, nil
 		}
 	}
 	return "", ErrNotFound
 }
 
-func (p *Config) StringDefault(key string, defaultValue string) string {
+func (p *Config) StringDefault(key string, defaultVal string) string {
 	value, err := p.String(key)
 	if err != nil {
-		return defaultValue
+		return defaultVal
 	}
 	return value
 }
@@ -259,21 +258,14 @@ func (p *Config) List(key string, delimiterArg ...string) ([]string, error) {
 	return strings.Split(value, delimiter), nil
 }
 
-func (p *Config) ListDefault(key string, defaultValue []string, delimiterArg ...string) []string {
+func (p *Config) ListDefault(key string, defaultVal []string, delimiterArg ...string) []string {
 	delimiter := " "
 	if len(delimiterArg) > 0 {
 		delimiter = delimiterArg[0]
 	}
 	value, err := p.List(key, delimiter)
 	if err != nil {
-		return defaultValue
+		return defaultVal
 	}
 	return value
-}
-
-func (p *Config) Interface(key string) (interface{}, error) {
-	if v, ok := p.data[key]; ok {
-		return v, nil
-	}
-	return nil, ErrNotFound
 }
