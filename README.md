@@ -6,14 +6,17 @@
 
 示例配置文件test.conf内容如下：
 
-```conf
-    # this is comment line 1
-    ; this is comment line 2
-    USERNAME = jiazhoulvke
-    PORT     = 1984
-    VERSION  = 1.1
-    HOST     = localhost
-```
+> # this is comment line 1
+> ; this is comment line 2
+> USERNAME = jiazhoulvke
+> PORT     = 1984
+> VERSION  = 1.1
+> HOST     = localhost
+> 
+> [abc]
+> tint=1
+> tfloat=1.4
+> tstring=333
 
 读取配置文件:
 
@@ -28,7 +31,7 @@
 ```
 
 
-获取字段方法一:
+获取字段值:
 
 ```go
     username, err := cfg.GetString("USERNAME")
@@ -38,11 +41,22 @@
     fmt.Println(username) //jiazhoulvke
 ```
 
-获取字段方法二:
+获取字段值，如果不存在则使用给予的默认值:
 
 ```go
     username := cfg.StringDefault("NOKEY", "jiazhoulvke") //如果没有找到对应的字段则使用默认值
     fmt.Println(username) //jiazhoulvke
+```
+
+设置Section:
+
+```go
+    cfg.SetSection("abc")
+```
+
+在所有Section中搜索,返回相应值及所在的Setion:
+```go
+    value, section, err := cfg.Search("tstring")
 ```
 
 
