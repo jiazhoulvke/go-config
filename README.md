@@ -6,17 +6,17 @@
 
 示例配置文件test.conf内容如下：
 
-> # this is comment line 1
-> ; this is comment line 2
-> USERNAME = jiazhoulvke
-> PORT     = 1984
-> VERSION  = 1.1
-> HOST     = localhost
-> 
-> [abc]
-> tint=1
-> tfloat=1.4
-> tstring=333
+    # this is comment line 1
+    ; this is comment line 2
+    USERNAME = jiazhoulvke
+    PORT     = 1984
+    VERSION  = 1.1
+    HOST     = localhost
+    
+    [abc]
+    tint=1
+    tfloat=1.4
+    tstring=333
 
 读取配置文件:
 
